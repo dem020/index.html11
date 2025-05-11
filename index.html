@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мини-Касса</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, button, select { padding: 10px; margin: 10px 0; width: 100%; }
+    #result { margin-top: 20px; border: 1px solid #ccc; padding: 10px; display: none; }
+    video { width: 100%; max-width: 400px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    td, th { border: 1px solid #ccc; padding: 6px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h2>🛒 Мини-касса</h2>
+
+  <!-- Поиск товара -->
+  <input type="text" id="searchInput" placeholder="Введите название или штрихкод товара..." />
+  <button onclick="findProduct()">Найти товар</button>
+
+  <!-- Сканер -->
+  <video id="preview"></video>
+  <button onclick="startScanner()">Сканировать штрихкод</button>
+
+  <!-- Корзина -->
+  <table id="cartTable">
+    <tr><th>Товар</th><th>Цена</th></tr>
+  </table>
+  <h3>Итого: <span id="total">0</span> ₽</h3>
+
+  <!-- Оплата -->
+  <select id="paymentMethod">
+    <option value="card">Карта</option>
+    <option value="cash">Наличные</option>
+  </select>
+  <button onclick="checkout()">Оплатить</button>
+
+  <!-- Чек -->
+  <div id="result">
+    <h3>🧾 Ваш чек:</h3>
+    <p><strong>Тип оплаты:</strong> <span id="receiptPayment"></span></p>
+    <p><strong>Товары:</strong></p>
+    <ul id="receiptItems"></ul>
+    <p><strong>Сумма:</strong> <span id="receiptTotal"></span> ₽</p>
+  </div>
+
+  <!-- ZXing библиотека -->
+  <script src="https://unpkg.com/ @zxing/library@latest/umd/index.min.js"></script>
+  <script>
+    const products = {
+      "123456789012": { name: "Хлеб", price: 50 },
+      "234567890123": { name: "Молоко", price: 80 },
+      "345678901234": { name: "Яблоки", price: 120 },
+      "хлеб": { name: "Хлеб", price: 50 },
+      "молоко": { name: "Молоко", price: 80 },
+      "яблоки": { name: "Яблоки", price: 120 }
+    };
+
+    let cart = [];
+
+    function findProduct() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const product = products[query];
+      if (product) {
+        cart.push(product);
+        updateCart();
+      } else {
+        alert("Товар не найден");
+      }
+    }
+
+    function updateCart() {
+      const cartTable = document.getElementById("cartTable");
+      cartTable.innerHTML = "<tr><th>Товар</th><th>Цена</th></tr>";
+      let totalSum = 0;
+      cart.forEach(item => {
+        cartTable.innerHTML += `<tr><td>${item.name}</td><td>${item.price} ₽</td></tr>`;
+        totalSum += item.price;
+      });
+      document.getElementById("total").innerText = totalSum;
+    }
+
+    // Сканер штрихкода
+    let codeReader = new ZXing.BrowserMultiFormatReader();
+    async function startScanner() {
+      try {
+        const videoInputDevices = await codeReader.listVideoInputDevices();
+        const firstDeviceId = videoInputDevices[0].deviceId;
+        codeReader.decodeFromVideoDevice(firstDeviceId, 'preview', (result, err) => {
+          if (result) {
+            document.getElementById("searchInput").value = result.text;
+            findProduct();
+            codeReader.reset();
+          }
+          if (err && !(err instanceof ZXing.NotFoundException)) {
+            console.error(err);
+          }
+        });
+      } catch (error) {
+        alert("Не удалось запустить камеру.");
+        console.error(error);
+      }
+    }
+
+    // Покупка
+    function checkout() {
+      if (cart.length === 0) {
+        alert("Добавьте товары в корзину!");
+        return;
+      }
+
+      const payment = document.getElementById("paymentMethod").value;
+      const receiptItems = document.getElementById("receiptItems");
+      receiptItems.innerHTML = "";
+      cart.forEach(item => {
+        receiptItems.innerHTML += `<li>${item.name} — ${item.price} ₽</li>`;
+      });
+
+      const totalSum = cart.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById("receiptTotal").innerText = totalSum;
+      document.getElementById("receiptPayment").innerText = payment === "card" ? "Карта" : "Наличные";
+      document.getElementById("result").style.display = "block";
+
+      cart = [];
+      updateCart();
+    }
+  </script>
+</body>
+</html>
