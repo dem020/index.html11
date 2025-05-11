@@ -2,63 +2,108 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Касса с админкой</title>
+  <title>Вкус СССР - Касса с базой</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto&display=swap " rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-      color: #333;
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: #f9f9f9 url('https://i.imgur.com/4jWc35y.png ') no-repeat center top;
+      background-size: cover;
+      color: #1a1a1a;
     }
-    h2 {
-      margin-top: 30px;
-    }
-    input, button, select, textarea {
-      padding: 10px;
-      width: 100%;
-      margin: 8px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
+
     .container {
       max-width: 900px;
       margin: auto;
-      background: white;
-      padding: 20px;
+      padding: 30px 20px;
+      background: rgba(255, 255, 255, 0.95);
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      margin-top: 40px;
     }
-    video {
+
+    h1, h2 {
+      text-align: center;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 20px;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      color: #b30000;
+    }
+
+    input, button, select {
+      padding: 12px;
+      width: 100%;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 2px solid #b30000;
+      background: #fffbea;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: #ffe4c4;
+      cursor: pointer;
+    }
+
+    video, canvas {
       width: 100%;
       max-width: 400px;
       display: block;
-      margin-bottom: 10px;
+      margin: 10px auto;
+      border: 2px dashed #b30000;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 20px;
     }
+
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      border: 1px solid #b30000;
+      padding: 10px;
       text-align: center;
     }
+
     .receipt {
-      border: 1px dashed #aaa;
-      padding: 10px;
-      margin-top: 20px;
-      background: #fffbea;
+      background: #fff;
+      padding: 20px;
+      margin-top: 30px;
+      border: 2px dashed #b30000;
+      font-family: monospace;
+      font-size: 14px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    canvas.barcode {
-      height: 50px;
-      margin-top: 5px;
+
+    .receipt h3 {
+      text-align: center;
+      margin-bottom: 10px;
     }
+
+    .receipt ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .receipt li {
+      display: flex;
+      justify-content: space-between;
+    }
+
     .hidden {
       display: none;
     }
-    .admin-only {
-      background: #eef; border-left: 4px solid #36f; padding: 10px; margin: 10px 0;
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 40px;
+      color: #777;
     }
   </style>
 </head>
@@ -66,175 +111,180 @@
 
 <div class="container">
 
-  <!-- Выбор режима -->
-  <h2>🔐 Вход</h2>
-  <button onclick="switchToCashier()">Кассир</button>
-  <button onclick="showAdminLogin()">Администратор</button>
+  <h1>ВКУС СССР</h1>
 
-  <!-- Логин админа -->
-  <div id="adminLogin" class="hidden">
-    <input type="text" id="loginUser" placeholder="Логин" />
-    <input type="password" id="loginPass" placeholder="Пароль" />
-    <button onclick="loginAdmin()">Войти</button>
+  <!-- Добавление товара -->
+  <h2>📦 Добавить товар</h2>
+  <input type="text" id="newProductName" placeholder="Название товара" />
+  <input type="number" id="newProductPrice" placeholder="Цена" />
+  <input type="text" id="newProductBarcode" placeholder="Штрихкод" />
+  <button onclick="addNewProduct()">Добавить</button>
+
+  <!-- Список товаров -->
+  <h2>🛍️ Товары</h2>
+  <div id="productsList"></div>
+
+  <!-- Поиск по фото -->
+  <h2>📸 AI-поиск товара по фото</h2>
+  <video id="webcam" autoplay></video>
+  <button onclick="capturePhoto()">Сделать фото</button>
+  <canvas id="photoCanvas" class="hidden"></canvas>
+  <p id="aiResult">Результат распознавания: <strong>—</strong></p>
+
+  <!-- Поиск товара -->
+  <input type="text" id="searchInput" placeholder="Введите название или штрихкод..." />
+  <button onclick="findProduct()">Найти товар</button>
+
+  <!-- Сканер -->
+  <h2>🔍 Сканер штрих/QR-кодов</h2>
+  <video id="preview"></video>
+  <button onclick="startScanner()">Запустить сканер</button>
+
+  <!-- Корзина -->
+  <h2>🛒 Корзина</h2>
+  <table id="cartTable">
+    <tr><th>Товар</th><th>Цена</th></tr>
+  </table>
+  <h3>Итого: <span id="total">0</span> ₽</h3>
+
+  <!-- Оплата -->
+  <h2>💳 Способ оплаты</h2>
+  <select id="paymentMethod">
+    <option value="card">Карта</option>
+    <option value="cash">Наличные</option>
+    <option value="online">Онлайн (QR)</option>
+  </select>
+  <button onclick="checkout()">Оплатить</button>
+
+  <!-- Чек -->
+  <div class="receipt" id="receipt" style="display:none;">
+    <h3>🧾 ООО "ВКУС СССР"</h3>
+    <p>Адрес: ул. Советская, д. 5</p>
+    <p>ИНН: 7701001234 | ККТ: 123456789012</p>
+    <p>Дата: <span id="receiptDate"></span></p>
+    <hr/>
+    <ul id="receiptItems"></ul>
+    <hr/>
+    <p><strong>Способ оплаты:</strong> <span id="receiptPayment"></span></p>
+    <p><strong>ИТОГО:</strong> <span id="receiptTotal"></span> ₽</p>
+    <p>Подпись: _________________</p>
+    <p style="font-size:12px; text-align:center;">Спасибо за покупку!</p>
   </div>
 
-  <!-- Основной интерфейс кассы -->
-  <div id="cashierMode" class="hidden">
-
-    <!-- Добавить товар -->
-    <h2>➕ Добавить товар</h2>
-    <input type="text" id="newProductName" placeholder="Название товара" />
-    <input type="number" id="newProductPrice" placeholder="Цена" />
-    <button onclick="addNewProduct()">Добавить товар</button>
-
-    <!-- Список товаров -->
-    <h2>📦 Товары</h2>
-    <div id="productsList"></div>
-
-    <!-- Поиск / сканер -->
-    <h2>🔍 Найти товар</h2>
-    <input type="text" id="searchInput" placeholder="Введите название или штрихкод..." />
-    <button onclick="findProduct()">Найти</button>
-    <video id="preview"></video>
-    <button onclick="startScanner()">Сканировать</button>
-
-    <!-- Корзина -->
-    <h2>🛒 Корзина</h2>
-    <table id="cartTable">
-      <tr><th>Товар</th><th>Цена</th></tr>
-    </table>
-    <h3>Итого: <span id="total">0</span> ₽</h3>
-
-    <!-- Оплата -->
-    <h2>💳 Способ оплаты</h2>
-    <select id="paymentMethod">
-      <option value="card">Карта</option>
-      <option value="cash">Наличные</option>
-      <option value="online">Онлайн (QR)</option>
-    </select>
-    <button onclick="checkout()">Оплатить</button>
-
-    <!-- Чек -->
-    <div class="receipt" id="receipt" style="display:none;"></div>
-
-  </div>
-
-  <!-- Админка -->
-  <div id="adminPanel" class="hidden admin-only">
-    <h2>📊 История продаж</h2>
-    <div id="salesHistory"></div>
-
-    <h2>🗑 Удалить все данные</h2>
-    <button onclick="clearAllData()">Очистить всё</button>
-  </div>
+  <!-- Кнопка сохранения -->
+  <button id="downloadBtn" class="hidden" onclick="downloadReceipt()">📥 Сохранить чек (PDF)</button>
 
 </div>
 
+<footer>
+  © 2025 Вкус СССР. Все права защищены.
+</footer>
+
 <!-- Библиотеки -->
 <script src="https://unpkg.com/ @zxing/library@latest/umd/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode @3.11.5/dist/JsBarcode.all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js "></script>
+<script src="https://cdn.jsdelivr.net/npm/ @tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ @tensorflow-models/mobilenet"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js "></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas @1.4.1/dist/html2canvas.min.js"></script>
 
 <script>
-  // === Настройки ===
-  const ADMIN_LOGIN = "admin";
-  const ADMIN_PASS = "1234";
-
-  // === Переключатели экранов ===
-  function switchToCashier() {
-    document.getElementById("cashierMode").classList.remove("hidden");
-    document.getElementById("adminLogin").classList.add("hidden");
-    document.getElementById("adminPanel").classList.add("hidden");
-  }
-
-  function showAdminLogin() {
-    document.getElementById("adminLogin").classList.remove("hidden");
-    document.getElementById("cashierMode").classList.add("hidden");
-    document.getElementById("adminPanel").classList.add("hidden");
-  }
-
-  function loginAdmin() {
-    const user = document.getElementById("loginUser").value;
-    const pass = document.getElementById("loginPass").value;
-    if (user === ADMIN_LOGIN && pass === ADMIN_PASS) {
-      document.getElementById("adminPanel").classList.remove("hidden");
-    } else {
-      alert("Неверный логин или пароль");
-    }
-  }
-
-  // === Работа с товарами ===
+  // === База товаров ===
   let products = JSON.parse(localStorage.getItem("products")) || {};
-  let cart = [];
-  let sales = JSON.parse(localStorage.getItem("sales")) || [];
 
   function saveProducts() {
     localStorage.setItem("products", JSON.stringify(products));
   }
 
-  function saveSales() {
-    localStorage.setItem("sales", JSON.stringify(sales));
-  }
-
   function renderProducts() {
     const list = document.getElementById("productsList");
     list.innerHTML = "";
+    if (Object.keys(products).length === 0) {
+      list.innerHTML = "<p>Товаров пока нет.</p>";
+      return;
+    }
     for (const code in products) {
       const p = products[code];
       list.innerHTML += `
-        <div style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px;">
+        <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
           <strong>${p.name}</strong> — ${p.price} ₽<br/>
           Штрихкод: <code>${code}</code><br/>
-          <canvas class="barcode" data-value="${code}"></canvas>
+          <button onclick="removeProduct('${code}')">🗑 Удалить</button>
         </div>
       `;
     }
-    JsBarcode(".barcode").init();
   }
 
   function addNewProduct() {
-    const name = document.getElementById("newProductName").value.trim();
+    const name = document.getElementById("newProductName").value.trim().toLowerCase();
     const price = parseFloat(document.getElementById("newProductPrice").value);
-    if (!name || isNaN(price)) return alert("Заполните все поля");
+    const barcode = document.getElementById("newProductBarcode").value.trim();
 
-    const code = generateUniqueCode();
-    products[code] = { name, price };
+    if (!name || isNaN(price) || !barcode) {
+      alert("Заполните все поля");
+      return;
+    }
+
+    products[barcode] = { name, price };
     saveProducts();
     renderProducts();
+    document.getElementById("newProductName").value = "";
+    document.getElementById("newProductPrice").value = "";
+    document.getElementById("newProductBarcode").value = "";
   }
 
-  function generateUniqueCode() {
-    let code;
-    do {
-      code = Math.floor(Math.random() * 900000000000 + 100000000000).toString();
-    } while (products[code]);
-    return code;
-  }
-
-  function findProduct() {
-    const query = document.getElementById("searchInput").value.trim().toLowerCase();
-    const product = products[query];
-    if (product) {
-      cart.push(product);
-      updateCart();
-    } else {
-      alert("Товар не найден");
+  function removeProduct(code) {
+    if (confirm("Удалить товар?")) {
+      delete products[code];
+      saveProducts();
+      renderProducts();
     }
   }
 
-  function updateCart() {
-    const cartTable = document.getElementById("cartTable");
-    cartTable.innerHTML = "<tr><th>Товар</th><th>Цена</th></tr>";
-    let totalSum = 0;
-    cart.forEach(item => {
-      cartTable.innerHTML += `<tr><td>${item.name}</td><td>${item.price} ₽</td></tr>`;
-      totalSum += item.price;
-    });
-    document.getElementById("total").innerText = totalSum;
+  // ==== AI-поиск по фото ====
+  const webcam = document.getElementById("webcam");
+  const photoCanvas = document.getElementById("photoCanvas");
+  const aiResult = document.getElementById("aiResult");
+
+  async function setupWebcam() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    webcam.srcObject = stream;
   }
 
-  // === Сканер ===
+  function capturePhoto() {
+    const ctx = photoCanvas.getContext("2d");
+    photoCanvas.width = webcam.videoWidth;
+    photoCanvas.height = webcam.videoHeight;
+    ctx.drawImage(webcam, 0, 0, photoCanvas.width, photoCanvas.height);
+
+    detectImage(photoCanvas);
+  }
+
+  async function detectImage(canvas) {
+    const model = await mobilenet.load();
+    const image = tf.browser.fromPixels(canvas);
+    const resized = tf.image.resizeBilinear(image, [224, 224]);
+    const normalized = resized.div(tf.scalar(255));
+    const batched = normalized.reshape([1, 224, 224, 3]);
+
+    const result = await model.classify(batched);
+    console.log(result);
+    if (result && result.length > 0) {
+      const label = result[0].className.toLowerCase();
+      aiResult.innerHTML = `Результат распознавания: <strong>${label}</strong>`;
+      for (const code in products) {
+        const product = products[code];
+        if (product.name.includes(label)) {
+          cart.push(product);
+          updateCart();
+          break;
+        }
+      }
+    }
+  }
+
+  // ==== Сканер штрих/QR-кодов ====
   let codeReader = new ZXing.BrowserMultiFormatReader();
+
   async function startScanner() {
     try {
       const videoInputDevices = await codeReader.listVideoInputDevices();
@@ -255,72 +305,72 @@
     }
   }
 
-  // === Покупка и чек ===
+  // ==== Обычный поиск ====
+  function findProduct() {
+    const query = document.getElementById("searchInput").value.trim().toLowerCase();
+    for (const code in products) {
+      const product = products[code];
+      if (code === query || product.name.includes(query)) {
+        cart.push(product);
+        updateCart();
+        return;
+      }
+    }
+    alert("Товар не найден");
+  }
+
+  function updateCart() {
+    const cartTable = document.getElementById("cartTable");
+    cartTable.innerHTML = "<tr><th>Товар</th><th>Цена</th></tr>";
+    let totalSum = 0;
+    cart.forEach(item => {
+      cartTable.innerHTML += `<tr><td>${item.name}</td><td>${item.price} ₽</td></tr>`;
+      totalSum += item.price;
+    });
+    document.getElementById("total").innerText = totalSum;
+  }
+
   function checkout() {
     if (cart.length === 0) return alert("Добавьте товары в корзину!");
 
     const payment = document.getElementById("paymentMethod").value;
-    const receiptDiv = document.getElementById("receipt");
-    receiptDiv.style.display = "block";
-    receiptDiv.innerHTML = `<h3>🧾 Ваш чек:</h3>`;
-    receiptDiv.innerHTML += `<ul>`;
+    const receiptItems = document.getElementById("receiptItems");
+    receiptItems.innerHTML = "";
     cart.forEach(item => {
-      receiptDiv.innerHTML += `<li>${item.name} — ${item.price} ₽</li>`;
+      receiptItems.innerHTML += `<li><span>${item.name}</span><span>${item.price} ₽</span></li>`;
     });
-    receiptDiv.innerHTML += `</ul>`;
 
     const totalSum = cart.reduce((sum, item) => sum + item.price, 0);
-    receiptDiv.innerHTML += `<p><strong>Сумма:</strong> ${totalSum} ₽</p>`;
-    receiptDiv.innerHTML += `<p><strong>Метод оплаты:</strong> ${payment === "card" ? "Карта" : payment === "cash" ? "Наличные" : "Онлайн"}</p>`;
+    document.getElementById("receiptTotal").innerText = totalSum;
+    document.getElementById("receiptPayment").innerText = payment === "card" ? "Безналичный расчет" : payment === "cash" ? "Наличными" : "Онлайн";
+    document.getElementById("receiptDate").innerText = new Date().toLocaleString();
 
-    // Сохраняем продажу
-    sales.push({
-      date: new Date().toLocaleString(),
-      items: [...cart],
-      total: totalSum,
-      method: payment
-    });
-    saveSales();
+    document.getElementById("receipt").style.display = "block";
+    document.getElementById("downloadBtn").classList.remove("hidden");
 
     cart = [];
     updateCart();
   }
 
-  // === Админка ===
-  function renderSalesHistory() {
-    const history = document.getElementById("salesHistory");
-    history.innerHTML = "";
-    if (sales.length === 0) {
-      history.innerHTML = "<p>Продаж пока нет.</p>";
-      return;
-    }
+  async function downloadReceipt() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
 
-    sales.forEach(sale => {
-      history.innerHTML += `
-        <div style="border-bottom: 1px solid #ccc; padding: 10px 0;">
-          <strong>Дата:</strong> ${sale.date}<br/>
-          <strong>Сумма:</strong> ${sale.total} ₽<br/>
-          <strong>Метод:</strong> ${sale.method}<br/>
-          <ul>
-            ${sale.items.map(i => `<li>${i.name} — ${i.price} ₽</li>`).join("")}
-          </ul>
-        </div>
-      `;
-    });
+    const receipt = document.getElementById("receipt");
+    const canvas = await html2canvas(receipt, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const width = doc.internal.pageSize.getWidth();
+    const height = (canvas.height * width) / canvas.width;
+
+    doc.addImage(imgData, "PNG", 0, 0, width, height);
+    doc.save("Чек_Вкус_СССР.pdf");
   }
 
-  function clearAllData() {
-    if (confirm("Вы уверены, что хотите удалить все данные?")) {
-      localStorage.clear();
-      location.reload();
-    }
-  }
-
-  // === Загрузка ===
+  // ==== Загрузка ====
   renderProducts();
-  renderSalesHistory();
+  setupWebcam();
 </script>
 
 </body>
 </html>
-
